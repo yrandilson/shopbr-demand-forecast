@@ -1,0 +1,151 @@
+{
+  "features": [
+    "dia_semana",
+    "mes",
+    "semana_ano",
+    "dia_mes",
+    "trimestre",
+    "is_fim_semana",
+    "mes_sin",
+    "mes_cos",
+    "dow_sin",
+    "dow_cos",
+    "is_feriado_comercial",
+    "lag_1d",
+    "lag_7d",
+    "lag_14d",
+    "lag_21d",
+    "lag_28d",
+    "lag_35d",
+    "roll_mean_7d",
+    "roll_std_7d",
+    "roll_max_7d",
+    "roll_min_7d",
+    "roll_mean_14d",
+    "roll_std_14d",
+    "roll_max_14d",
+    "roll_min_14d",
+    "roll_mean_28d",
+    "roll_std_28d",
+    "roll_max_28d",
+    "roll_min_28d",
+    "diff_1d",
+    "diff_7d",
+    "diff_28d",
+    "trend_idx",
+    "roll_receita_7d",
+    "roll_receita_28d",
+    "cat_Beleza",
+    "cat_Casa & Jardim",
+    "cat_Eletrônicos",
+    "cat_Esportes",
+    "cat_Moda"
+  ],
+  "target": "unidades",
+  "train_start": "2022-02-05",
+  "train_end": "2023-12-31",
+  "test_start": "2024-01-01",
+  "test_end": "2024-03-31",
+  "n_train": 3475,
+  "n_test": 455,
+  "metrics_gb": {
+    "mae": 78.94,
+    "rmse": 97.42,
+    "mape": 43.01,
+    "r2": 0.3935
+  },
+  "metrics_rf": {
+    "mae": 42.18,
+    "rmse": 82.13,
+    "mape": 19.59,
+    "r2": 0.5689
+  },
+  "metrics_ensemble": {
+    "mae": 54.74,
+    "rmse": 82.97,
+    "mape": 28.96,
+    "r2": 0.5601
+  },
+  "top_features": [
+    {
+      "feature": "lag_1d",
+      "importance": 0.7253530286704981
+    },
+    {
+      "feature": "roll_min_14d",
+      "importance": 0.02418375332210013
+    },
+    {
+      "feature": "roll_mean_7d",
+      "importance": 0.023372639155968593
+    },
+    {
+      "feature": "roll_min_7d",
+      "importance": 0.021196157263091677
+    },
+    {
+      "feature": "lag_21d",
+      "importance": 0.017763545667891775
+    },
+    {
+      "feature": "semana_ano",
+      "importance": 0.017589386480144478
+    },
+    {
+      "feature": "roll_std_7d",
+      "importance": 0.016539451057618455
+    },
+    {
+      "feature": "dia_mes",
+      "importance": 0.014732887139714905
+    },
+    {
+      "feature": "diff_28d",
+      "importance": 0.014460574677983198
+    },
+    {
+      "feature": "dia_semana",
+      "importance": 0.012891408037565156
+    },
+    {
+      "feature": "lag_7d",
+      "importance": 0.008728568908602156
+    },
+    {
+      "feature": "mes",
+      "importance": 0.008434776281727209
+    },
+    {
+      "feature": "diff_7d",
+      "importance": 0.00839072731687813
+    },
+    {
+      "feature": "roll_max_28d",
+      "importance": 0.007738897162941606
+    },
+    {
+      "feature": "lag_35d",
+      "importance": 0.006880556489566209
+    },
+    {
+      "feature": "dow_sin",
+      "importance": 0.006657600016156042
+    },
+    {
+      "feature": "is_feriado_comercial",
+      "importance": 0.006642936814364245
+    },
+    {
+      "feature": "roll_mean_28d",
+      "importance": 0.005802712057277945
+    },
+    {
+      "feature": "diff_1d",
+      "importance": 0.005739686956527918
+    },
+    {
+      "feature": "dow_cos",
+      "importance": 0.005683274839346648
+    }
+  ]
+}

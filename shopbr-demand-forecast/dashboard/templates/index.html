@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopBR · Previsão de Demanda</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:        #080c14;
+    --surface:   #0e1420;
+    --border:    #1c2438;
+    --accent:    #00e5ff;
+    --accent2:   #ff5e57;
+    --accent3:   #a8ff3e;
+    --text:      #e2eaf4;
+    --muted:     #5a6a80;
+    --font-mono: 'Space Mono', monospace;
+    --font-body: 'DM Sans', sans-serif;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--bg);
+  }
+
+  .logo-text {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--text);
+    letter-spacing: 0.05em;
+  }
+
+  .logo-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 1px;
+    font-family: var(--font-body);
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .badge-period {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent);
+    background: rgba(0,229,255,0.08);
+    border: 1px solid rgba(0,229,255,0.2);
+    padding: 4px 10px;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+  }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent3);
+    box-shadow: 0 0 6px var(--accent3);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.3; }
+  }
+
+  /* MAIN LAYOUT */
+  main { padding: 28px 32px; max-width: 1600px; margin: 0 auto; }
+
+  /* PAGE TITLE */
+  .page-title {
+    margin-bottom: 24px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+
+  .page-title h1 {
+    font-family: var(--font-mono);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+
+  .page-title p {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-weight: 300;
+  }
+
+  /* FILTER BAR */
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+  }
+
+  .filter-bar label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    font-family: var(--font-mono);
+  }
+
+  .filter-bar select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    cursor: pointer;
+    outline: none;
+  }
+
+  .filter-bar select:focus {
+    border-color: var(--accent);
+  }
+
+  /* KPI CARDS */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 1200px) { .kpi-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 700px)  { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--kpi-color, var(--accent));
+  }
+
+  .kpi-card:hover { border-color: var(--kpi-color, var(--accent)); }
+
+  .kpi-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .kpi-value {
+    font-family: var(--font-mono);
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .kpi-unit {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--kpi-color, var(--accent));
+    margin-top: 4px;
+  }
+
+  /* CHART GRID */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .chart-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 1100px) {
+    .chart-grid { grid-template-columns: 1fr; }
+    .chart-grid-3 { grid-template-columns: 1fr; }
+  }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+  }
+
+  .chart-title {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .chart-title span {
+    color: var(--text);
+    font-size: 14px;
+    letter-spacing: 0;
+    text-transform: none;
+    font-family: var(--font-body);
+    font-weight: 500;
+  }
+
+  .chart-wrap {
+    position: relative;
+    height: 260px;
+  }
+
+  .chart-wrap-sm {
+    position: relative;
+    height: 220px;
+  }
+
+  /* TABLE */
+  .table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  thead tr {
+    border-bottom: 1px solid var(--border);
+  }
+
+  thead th {
+    text-align: left;
+    padding: 8px 12px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(28,36,56,0.6);
+    transition: background 0.15s;
+  }
+
+  tbody tr:hover { background: rgba(0,229,255,0.03); }
+  tbody tr:last-child { border-bottom: none; }
+
+  tbody td {
+    padding: 10px 12px;
+    color: var(--text);
+  }
+
+  .erro-pos { color: var(--accent2); }
+  .erro-neg { color: var(--accent3); }
+  .erro-zero { color: var(--muted); }
+
+  .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+
+  /* FOOTER */
+  footer {
+    text-align: center;
+    padding: 24px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+  }
+
+  /* LOADER */
+  .loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 260px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    gap: 8px;
+  }
+
+  .spin {
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* LEGEND */
+  .legend {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 2px;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">SB</div>
+    <div>
+      <div class="logo-text">SHOPBR · DATA SCIENCE</div>
+      <div class="logo-sub">Demand Forecasting Dashboard</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="badge-period" id="badge-period">— carregando —</span>
+    <div class="status-dot"></div>
+  </div>
+</header>
+
+<main>
+
+  <!-- PAGE TITLE -->
+  <div class="page-title">
+    <div>
+      <h1>Previsão de Demanda por Categoria</h1>
+      <p>Modelo Random Forest · validação temporal · período de teste: Jan–Mar 2024</p>
+    </div>
+  </div>
+
+  <!-- FILTER -->
+  <div class="filter-bar">
+    <label>Categoria</label>
+    <select id="sel-categoria">
+      <option value="Todas">Todas as categorias</option>
+    </select>
+    <div style="margin-left:auto; font-family:var(--font-mono); font-size:11px; color:var(--muted)">
+      Modelo: <span style="color:var(--accent)">Random Forest + GradientBoosting Ensemble</span>
+    </div>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="kpi-grid" id="kpi-grid">
+    <div class="kpi-card" style="--kpi-color:#00e5ff">
+      <div class="kpi-label">MAE</div>
+      <div class="kpi-value" id="kpi-mae">—</div>
+      <div class="kpi-unit">unidades</div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#a8ff3e">
+      <div class="kpi-label">RMSE</div>
+      <div class="kpi-value" id="kpi-rmse">—</div>
+      <div class="kpi-unit">unidades</div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#ff9f43">
+      <div class="kpi-label">MAPE</div>
+      <div class="kpi-value" id="kpi-mape">—</div>
+      <div class="kpi-unit">%</div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#a29bfe">
+      <div class="kpi-label">R²</div>
+      <div class="kpi-value" id="kpi-r2">—</div>
+      <div class="kpi-unit">score</div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#00e5ff">
+      <div class="kpi-label">Vendas Reais (teste)</div>
+      <div class="kpi-value" id="kpi-real">—</div>
+      <div class="kpi-unit">unidades totais</div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#ff5e57">
+      <div class="kpi-label">Previsto (teste)</div>
+      <div class="kpi-value" id="kpi-pred">—</div>
+      <div class="kpi-unit">unidades totais</div>
+    </div>
+  </div>
+
+  <!-- SÉRIE TEMPORAL -->
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title">
+        <span>Real vs. Previsto · Unidades/Semana</span>
+        <span style="font-family:var(--font-mono); font-size:11px">período de teste</span>
+      </div>
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#00e5ff"></div> Real
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#ff5e57"></div> Previsto
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chart-serie"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">
+        <span>Vendas por Categoria · Teste</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chart-cat"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTÓRICO + FEATURE IMPORTANCE + RESÍDUOS -->
+  <div class="chart-grid-3">
+    <div class="chart-card">
+      <div class="chart-title">
+        <span>Histórico de Vendas · 2022–2024</span>
+      </div>
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#a8ff3e"></div> Unidades
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#a29bfe; opacity:0.7"></div> Receita (R$ mil)
+        </div>
+      </div>
+      <div class="chart-wrap-sm">
+        <canvas id="chart-hist"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">
+        <span>Feature Importance · Top 12</span>
+      </div>
+      <div class="chart-wrap-sm">
+        <canvas id="chart-feat"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">
+        <span>Distribuição dos Resíduos</span>
+      </div>
+      <div class="chart-wrap-sm">
+        <canvas id="chart-res"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABELA -->
+  <div class="table-card">
+    <div class="chart-title" style="margin-bottom:16px">
+      <span>Resumo por Categoria · Período de Teste</span>
+    </div>
+    <table id="table-cat">
+      <thead>
+        <tr>
+          <th>Categoria</th>
+          <th>Vendas Reais</th>
+          <th>Previsto</th>
+          <th>Erro (%)</th>
+          <th>Receita Real</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-cat">
+        <tr><td colspan="5" style="color:var(--muted); font-family:var(--font-mono); font-size:11px; padding:20px">carregando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</main>
+
+<footer>
+  ShopBR Marketplace · Data Science Team · 2024 &nbsp;|&nbsp;
+  Modelo: Random Forest (sklearn) &nbsp;|&nbsp;
+  Stack: Python · Pandas · Scikit-learn · Flask · Chart.js
+</footer>
+
+<script>
+// ── Utils ─────────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+
+const CHART_DEFAULTS = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      backgroundColor: '#0e1420',
+      borderColor: '#1c2438',
+      borderWidth: 1,
+      titleColor: '#e2eaf4',
+      bodyColor: '#5a6a80',
+      titleFont: { family: 'Space Mono', size: 11 },
+      bodyFont:  { family: 'DM Sans', size: 12 },
+    }
+  },
+  scales: {
+    x: {
+      ticks: { color: '#5a6a80', font: { family: 'Space Mono', size: 9 }, maxRotation: 45 },
+      grid:  { color: '#1c2438' },
+    },
+    y: {
+      ticks: { color: '#5a6a80', font: { family: 'Space Mono', size: 9 } },
+      grid:  { color: '#1c2438' },
+    },
+  },
+};
+
+function fmt(n) {
+  if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(1) + 'k';
+  return String(n);
+}
+
+function fmtBRL(n) {
+  return 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 0 });
+}
+
+// ── Overview ──────────────────────────────────────────────────────────────────
+async function loadOverview() {
+  const d = await (await fetch('/api/overview')).json();
+  $('kpi-mae').textContent  = d.mae;
+  $('kpi-rmse').textContent = d.rmse;
+  $('kpi-mape').textContent = d.mape + '%';
+  $('kpi-r2').textContent   = d.r2;
+  $('kpi-real').textContent = fmt(d.total_real);
+  $('kpi-pred').textContent = fmt(d.total_pred);
+  $('badge-period').textContent = `TRAIN ${d.train_start} → TEST ${d.test_end}`;
+
+  const sel = $('sel-categoria');
+  d.categorias.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c; o.textContent = c;
+    sel.appendChild(o);
+  });
+}
+
+// ── Série Temporal ────────────────────────────────────────────────────────────
+let chartSerie = null;
+
+async function loadSerie(cat = 'Todas') {
+  const d = await (await fetch(`/api/serie_temporal?categoria=${encodeURIComponent(cat)}`)).json();
+  const ctx = $('chart-serie').getContext('2d');
+
+  if (chartSerie) chartSerie.destroy();
+
+  chartSerie = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: d.labels,
+      datasets: [
+        {
+          label: 'Real',
+          data: d.real,
+          borderColor: '#00e5ff',
+          backgroundColor: 'rgba(0,229,255,0.06)',
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.3,
+          fill: true,
+        },
+        {
+          label: 'Previsto',
+          data: d.pred,
+          borderColor: '#ff5e57',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          borderDash: [4, 3],
+          pointRadius: 0,
+          tension: 0.3,
+        },
+      ]
+    },
+    options: CHART_DEFAULTS,
+  });
+}
+
+// ── Por Categoria ─────────────────────────────────────────────────────────────
+async function loadCategoria() {
+  const d = await (await fetch('/api/por_categoria')).json();
+  const ctx = $('chart-cat').getContext('2d');
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: d.categorias,
+      datasets: [
+        {
+          label: 'Real',
+          data: d.real,
+          backgroundColor: 'rgba(0,229,255,0.5)',
+          borderColor: '#00e5ff',
+          borderWidth: 1,
+          borderRadius: 3,
+        },
+        {
+          label: 'Previsto',
+          data: d.pred,
+          backgroundColor: 'rgba(255,94,87,0.4)',
+          borderColor: '#ff5e57',
+          borderWidth: 1,
+          borderRadius: 3,
+        },
+      ]
+    },
+    options: { ...CHART_DEFAULTS, plugins: { ...CHART_DEFAULTS.plugins, legend: { display: true, labels: { color: '#5a6a80', font: { family: 'Space Mono', size: 10 } } } } },
+  });
+}
+
+// ── Histórico ─────────────────────────────────────────────────────────────────
+async function loadHistorico(cat = 'Todas') {
+  const d = await (await fetch(`/api/historico_vendas?categoria=${encodeURIComponent(cat)}`)).json();
+  const ctx = $('chart-hist').getContext('2d');
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: d.labels,
+      datasets: [
+        {
+          label: 'Unidades',
+          data: d.unidades,
+          borderColor: '#a8ff3e',
+          backgroundColor: 'rgba(168,255,62,0.05)',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          tension: 0.4,
+          yAxisID: 'y',
+          fill: true,
+        },
+        {
+          label: 'Receita (R$ mil)',
+          data: d.receita,
+          borderColor: 'rgba(162,155,254,0.7)',
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          tension: 0.4,
+          yAxisID: 'y2',
+        },
+      ]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      scales: {
+        x: CHART_DEFAULTS.scales.x,
+        y:  { ...CHART_DEFAULTS.scales.y, position: 'left' },
+        y2: { ...CHART_DEFAULTS.scales.y, position: 'right', grid: { display: false } },
+      }
+    }
+  });
+}
+
+// ── Feature Importance ────────────────────────────────────────────────────────
+async function loadFeatImp() {
+  const d = await (await fetch('/api/feature_importance')).json();
+  const ctx = $('chart-feat').getContext('2d');
+
+  const colors = d.importances.map((_, i) => `hsla(${180 - i*12}, 100%, 60%, 0.7)`);
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: d.features,
+      datasets: [{
+        data: d.importances,
+        backgroundColor: colors,
+        borderRadius: 3,
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      indexAxis: 'y',
+      scales: {
+        x: { ...CHART_DEFAULTS.scales.x, ticks: { ...CHART_DEFAULTS.scales.x.ticks, callback: v => v + '%' } },
+        y: { ...CHART_DEFAULTS.scales.y, ticks: { color: '#5a6a80', font: { family: 'DM Sans', size: 11 } } },
+      }
+    }
+  });
+}
+
+// ── Resíduos ──────────────────────────────────────────────────────────────────
+async function loadResiduos() {
+  const d = await (await fetch('/api/residuos')).json();
+  const ctx = $('chart-res').getContext('2d');
+
+  const colors = d.bins.map(b => b < 0 ? 'rgba(255,94,87,0.6)' : 'rgba(0,229,255,0.6)');
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: d.bins.map(b => b.toFixed(0)),
+      datasets: [{
+        data: d.counts,
+        backgroundColor: colors,
+        borderWidth: 0,
+        borderRadius: 1,
+      }]
+    },
+    options: CHART_DEFAULTS,
+  });
+}
+
+// ── Tabela ────────────────────────────────────────────────────────────────────
+async function loadTabela() {
+  const d = await (await fetch('/api/tabela')).json();
+  const tbody = $('tbody-cat');
+  tbody.innerHTML = '';
+
+  d.forEach(row => {
+    const err = row.erro_pct;
+    const errClass = err > 5 ? 'erro-pos' : err < -5 ? 'erro-neg' : 'erro-zero';
+    const errSign  = err > 0 ? '+' : '';
+    const bgColor  = err > 0 ? 'rgba(255,94,87,0.1)' : 'rgba(168,255,62,0.1)';
+
+    tbody.innerHTML += `
+      <tr>
+        <td><strong>${row.categoria}</strong></td>
+        <td style="font-family:var(--font-mono)">${row.real_total.toLocaleString('pt-BR')}</td>
+        <td style="font-family:var(--font-mono)">${row.pred_total.toLocaleString('pt-BR')}</td>
+        <td>
+          <span class="pill ${errClass}" style="background:${bgColor}">
+            ${errSign}${err}%
+          </span>
+        </td>
+        <td style="font-family:var(--font-mono); color:var(--muted)">
+          ${fmtBRL(row.receita_real)}
+        </td>
+      </tr>`;
+  });
+}
+
+// ── Event listeners ───────────────────────────────────────────────────────────
+$('sel-categoria').addEventListener('change', e => {
+  loadSerie(e.target.value);
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+(async () => {
+  await loadOverview();
+  await Promise.all([
+    loadSerie(),
+    loadCategoria(),
+    loadHistorico(),
+    loadFeatImp(),
+    loadResiduos(),
+    loadTabela(),
+  ]);
+})();
+</script>
+</body>
+</html>
